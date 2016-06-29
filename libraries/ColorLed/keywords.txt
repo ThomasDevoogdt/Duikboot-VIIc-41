@@ -1,0 +1,24 @@
+#######################################
+# Syntax Coloring Map For IRremote
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+rgbLed KEYWORD1
+color KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+changeColor KEYWORD2
+
+#
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+transitionTime LITERAL1
+currentColor LITERAL1
