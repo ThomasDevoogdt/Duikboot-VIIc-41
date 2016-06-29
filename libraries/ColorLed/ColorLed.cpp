@@ -7,6 +7,13 @@
 
 #define hexToInt(x) strtol(x,NULL,16)
 
+short rgbLed::ledCounter = 0;
+void rgbLed::updateLeds(){
+	for (int i = 0; i < ledCounter; i++){
+			rgbLedPntr[i]->updateLed();
+	}
+}
+
 rgbLed::rgbLed(int pin1, int pin2, int pin3){
 	_pin1 = pin1;
 	_pin2 = pin2;
@@ -28,6 +35,9 @@ rgbLed::rgbLed(int pin1, int pin2, int pin3){
 		id = ledCounter;
 		ledCounter++;
 	*/
+	rgbLedPntr[ledCounter] = this;
+	id = ledCounter;
+	ledCounter++;
 }
 
 // input= #rrggbb or red;
@@ -67,8 +77,6 @@ void rgbLed::setTarget(struct color myColor){
 		difR = (targetColor.r > sourceColor.r) ? (targetColor.r - sourceColor.r) / steps : -( (sourceColor.r - targetColor.r) / steps);
 		difG = (targetColor.g > sourceColor.g) ? (targetColor.g - sourceColor.g) / steps : -((sourceColor.g - targetColor.g) / steps);
 		difB = (targetColor.b > sourceColor.b) ? (targetColor.b - sourceColor.b) / steps : -((sourceColor.b - targetColor.b) / steps);
-
-		ready = false;
 		//ready[id] = false;
 	}
 }
@@ -79,8 +87,6 @@ void rgbLed::updateLed(){
 	if(diffMs > 10){	
 		if (steps < (progress+1)){ //done fading =
 			currentColor = targetColor;
-
-			ready = true;
 			//ready[id] = true;
 		}
 		else{
@@ -96,6 +102,9 @@ void rgbLed::updateLed(){
 		lastMs = nowMs;
 	}
 }
+
+
+
 /*
 ISR(TIMER2_OVF_vect) {
 	for (int i = 0; i < ledCounter; i++){

@@ -1,24 +1,26 @@
 #######################################
-# Syntax Coloring Map For IRremote
+# Syntax Coloring Map For ColorLed
 #######################################
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
 
-rgbLed KEYWORD1
-color KEYWORD1
+rgbLed 			KEYWORD1
+color 			KEYWORD1
+ColorLed		KEYWORD1
+
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-changeColor KEYWORD2
+changeColor 	KEYWORD2
+updateLed		KEYWORD2
 
-#
 #######################################
 # Constants (LITERAL1)
 #######################################
 
-transitionTime LITERAL1
-currentColor LITERAL1
+transitionTime 	LITERAL1
+currentColor 	LITERAL1

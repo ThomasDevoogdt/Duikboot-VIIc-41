@@ -197,19 +197,19 @@ void setup() {
 *******************************************************************************************************************/
 
 void loop() {
-  ppmRemap();         //Schaalt alle waardes tussen 0 en 100%.
+  ppmRemap();           //Schaalt alle waardes tussen 0 en 100%.
 
-  servoCalc();        //Berekent de hoek van de servo's en stuurt ze aan.
+  servoCalc();          //Berekent de hoek van de servo's en stuurt ze aan.
 
-  escCalc();          //Berekent de snelheid van de motoren.
+  escCalc();            //Berekent de snelheid van de motoren.
 
-  tankCalc();         //Berekent de snelheid van de pompen en regelt hun werking.
+  tankCalc();           //Berekent de snelheid van de pompen en regelt hun werking.
 
-  voltageCheck();     //Controleert de spanning van de batterijen.
+  voltageCheck();       //Controleert de spanning van de batterijen.
 
-  myLed.updateLed();  //Kleuren Led update.
+  rgbLed::updateLeds(); //Kleuren Led update.
 
-  t.update();         //Timer update
+  t.update();           //Timer update
 }
 
 /*******************************************************************************************************************

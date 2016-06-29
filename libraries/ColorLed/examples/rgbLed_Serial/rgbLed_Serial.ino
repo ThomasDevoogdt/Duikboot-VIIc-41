@@ -40,7 +40,7 @@ void loop() {
                + ((abs(blue) < 10) ? " " : "")//text align
                + "";
   Serial.println(log);
-  myLed.updateLed();
+  rgbLed::updateLeds();
 }
 
 

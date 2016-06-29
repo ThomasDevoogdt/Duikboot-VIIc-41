@@ -7,7 +7,7 @@
 #ifndef ColorLed.h
 #define ColorLed.h
 
-//#define MAXLED 6
+#define MAXLED 8
 
 struct color {
 	unsigned short r;
@@ -26,10 +26,13 @@ class rgbLed
 		void updateLed();
 		struct color currentColor;
 		
+		//Please don't touch
+		static void updateLeds();
+		static short ledCounter;
 		
 		
 	private:
-		//int id;
+		int id;
 		void setTarget(struct color);
 		short _pin1, _pin2, _pin3;
 		int progress;
@@ -37,14 +40,13 @@ class rgbLed
 		float difR, difG, difB;
 		struct color targetColor;
 		struct color sourceColor;
-		boolean ready;
-		
-		
+		//boolean ready;
+	
 		long nowMs, lastMs; 
 		long diffMs;
-		
 };
 
+static rgbLed *rgbLedPntr[MAXLED];
 //static short ledCounter = 0;
 //static boolean ready[MAXLED];
 //static rgbLed *rgbLedPntr[MAXLED];
@@ -66,5 +68,7 @@ static struct color black =		{ 0  , 0  , 0   };
 static struct color white =		{ 255, 255, 255 };
 static struct color grey =		{ 80 , 80 , 80  };
 static struct color yellow =	{ 255, 255, 0   };
+
+
 
 #endif

@@ -12,7 +12,7 @@ void setup() {
 }
 
 void loop() {
-  myLed.updateLed();              //Led updaten.
+  rgbLed::updateLeds();           //Led updaten.
   t.update();                     //Timer updaten.
 }
 
