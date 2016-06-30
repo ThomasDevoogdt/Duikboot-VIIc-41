@@ -1,11 +1,12 @@
 /*******************************************************************************************************************
-  GP Duikboot VII c/41 2013-2015
+  GP Duikboot VII c/41 2013-2016
   by:       * Michiel Caron
               Christophe Dupont
               Joachim Pauwels
               Thomas Devoogdt
   links:    * http://viic41.blogspot.be/
               https://www.youtube.com/channel/UCqY24WBCvpEZ_ps5mDEgGUQ
+              https://github.com/ThomasDavidDev/Duikboot-VIIc-41
 *******************************************************************************************************************/
 /*ESC Calibratie*/
 /*  Throtle omhoog blijven houden.
@@ -26,7 +27,7 @@
 /*Define's*/
 //#define led 13
 
-#define gyroServoOffset 30  //Max hoek die door servo's worden gecorrigeerd.
+//#define gyroServoOffset 30  //Max hoek die door servo's worden gecorrigeerd.
 #define speedOffset 5       //Zone waarbinnen speedStop actief is. (voor joystick)
 #define servoOffset 7       //Zone waarbinnen servoOffset actief is. (voor joystick)
 
@@ -44,14 +45,14 @@
 #define directAngleVAngleMax  40
 
 #define maxDiepteBuitenTank 25    //Max diepte waarbij pompen nog nut heeft.
-#define snorkel           20      //Diepte Snorkel
+//#define snorkel           20      //Diepte Snorkel
 #define delayTankOutDown  36000   //Pomptijd omlaag
 #define delayTankOutUp    36000   //Pomptijd omhoog
-#define delayTankInsDown  1000    //Pomptijd binnentank
-#define delayTankInsUp    500     //Pomptijd binnentank
-#define maxDiepte         150     //cm
-#define minDuikSnelheid   -1      //1cm / 5s  
-#define criDuikSnelheid   -10     //10cm / 5s Kritieke duiksnelheid
+//#define delayTankInsDown  1000    //Pomptijd binnentank
+//#define delayTankInsUp    500     //Pomptijd binnentank
+//#define maxDiepte         150     //cm
+//#define minDuikSnelheid   -1      //1cm / 5s  
+//#define criDuikSnelheid   -10     //10cm / 5s Kritieke duiksnelheid
 
 //Vervang de getallen in PPM om de afstandsbediening in te stellen.
 #define PPMdirectionHorizontal  PPM[1]  //... (vul de juiste joystick aan)
@@ -74,7 +75,6 @@ Timer t;
 PPMdecode myPPMdecode = PPMdecode(inter, channels); //Aanmaken van een nieuw object.
 short defaultValue[channels] = { 50, 50, 50, 50, 50, 0 };
 int PPM[channels] = { 50, 50, 50, 50, 50, 0 };
-int duikReal;
 
 /*ADXL345_INIT (Hoek)*/
 ADXL345 adxl = ADXL345();     //Aanmaken van een nieuw object.
@@ -101,8 +101,8 @@ int voltageReal;
 boolean voltageAlarm = LOW;
 
 /*RGBLed*/
-rgbLed myLed = rgbLed(4, 12, 13);
-//RED   = PIN 4
+rgbLed myLed = rgbLed(12, 12, 13);
+//RED   = PIN 12
 //GREEN = PIN 12
 //BLUE  = PIN 13
 
@@ -118,23 +118,21 @@ int directVBAngleReal = directVBAngleStart;
 int directVFAngle     = directVFAngleStart;   //Servo richting vooraan, Omlaag - Omhoog.
 int directVFAngleReal = directVFAngleStart;
 
-int calAngle; //Draaihoek om de stabiliteit bij te sturen. (gyro afhankelijk)
+//int calAngle; //Draaihoek om de stabiliteit bij te sturen. (gyro afhankelijk)
 
-int diepteAsk;              //Gevraagde diepte.
-int diepteDiff;             //Verschil met gevraagde en werkelijke diepte.
-int diepteLast;             //Vorige diepte.
-int duikDiff;               //Hoogte verschil per tijdseenheid.
+int duikReal;               //Waarde van schuif pot. meter.
+//int diepteAsk;              //Gevraagde diepte.
+//int diepteDiff;             //Verschil met gevraagde en werkelijke diepte.
+//int diepteLast;             //Vorige diepte.
+//int duikDiff;               //Hoogte verschil per tijdseenheid.
 
-boolean insTankFlag = false;  //Binnentank in werking?
-boolean outTankFlag = false;  //Buitentank in werking?
 boolean firstFlag = false;    //Duikprocedure starten.
 boolean secondFlag = false;   //Snorkeldiepte bereikt met buitentank.
-boolean thirdFlag = false;    //Snorkeldiepte bereikt met binnentank.
 
-boolean outTankValA = false;  //HBrug Buiten tank
-boolean outTankValB = false;
-boolean inTankValA = false;   //HBrug Binnen tank
-boolean inTankValB = false;
+
+enum HBrug { off, left, right };
+HBrug outTank = off;
+HBrug inTank = off;
 
 boolean blinkLed = false;     //Led pin 13 blink.
 
@@ -143,8 +141,6 @@ Servo direct;           //Richting Links Rechts
 Servo directVB;         //Richting Achteraan, Omlaag - Omhoog
 Servo directVF;         //Richting Vooran, Omlaag - Omhoog
 Servo speedSet;         //ESC's Motoren
-Servo insTank;          //ESC Binnen Tank
-Servo outTank;          //ESC Buiten Tank
 
 /*SETUP*/
 void setup() {
@@ -175,10 +171,10 @@ void setup() {
   pinMode(9, OUTPUT);     //outTankValA
   pinMode(10, OUTPUT);    //outTankValB
 
-  pinMode(12, OUTPUT);    //RED
-  pinMode(13, OUTPUT);    //BLUE
+  //pinMode(12, OUTPUT);    //RED
+  //pinMode(13, OUTPUT);    //BLUE
 
-  myLed.transitionTime = 250;
+  myLed.transitionTime = 1000;
 
   direct.attach(3);                           //Richting Links Rechts
   directVB.attach(5);                         //Richting Achteraan, Omlaag - Omhoog
@@ -188,7 +184,7 @@ void setup() {
   delay(500);
 
   t.every(50, timer50);     //50ms timer
-  t.every(750, timer750);   //750ms timer
+  t.every(1500, timer1500);   //1500ms timer
   t.every(1000, timer1000); //1000ms timer
 }
 
@@ -263,44 +259,48 @@ void escCalc() {
 }
 
 void tankCalc() {
+  /*
+   * boolean firstFlag = false;    //Duikprocedure starten.
+   * boolean secondFlag = false;   //Snorkeldiepte bereikt met buitentank.
+   *
+   * int diepteReal;               //Diepte volgens druk pin.
+   * int duikReal;                 //Waarde van schuif pot. meter.
+   */
   //Buiten Tank
   if (duikReal > 75 && !firstFlag) firstFlag = true;
   if (duikReal < 25 && firstFlag) firstFlag = false;
 
-  if (firstFlag && ((!outTankFlag && !secondFlag) || (!outTankValA && outTankValB && secondFlag)) && diepteReal < maxDiepteBuitenTank) {
-    outTankFlag = true;
-
-    outTankValA = true; //Inpompen
-    outTankValB = false;
-
-    t.after(delayTankOutDown, delayCall1);
-  }
-  if (!firstFlag && ((!outTankFlag && secondFlag) || (outTankValA && !outTankValB  && !secondFlag)) && diepteReal < maxDiepteBuitenTank) {
-    outTankFlag = true;
-
-    outTankValA = false;  //Uitpompen
-    outTankValB = true;
-
-    t.after(delayTankOutUp, delayCall2);
+  if (diepteReal < maxDiepteBuitenTank) {
+    if (firstFlag && ((outTank == off && !secondFlag) || (outTank == right && secondFlag)) ) {
+      outTank = left; //Inpompen
+      t.after(delayTankOutDown, delayCallTankOutDown);
+    }
+    if (!firstFlag && ((outTank == off && secondFlag) || (outTank == left  && !secondFlag)) ) {
+      outTank = right;  //Uitpompen
+      t.after(delayTankOutUp, delayCallTankOutUp);
+    }
   }
 
   //Binnen Tank H-Bridge
+  //Later: als secondFlag && firstFlag, PID op insTank met Error = diepteReal - map(duikreal, 10, 100, maxDiepteBuitenTank, max diepte) 
+  //En de hysteresis van 10 naar 20
   int insTank = PPMbinnenTank; //Channel 3, val: 0 to 100
-  if (abs(insTank - 50) < 25) {
-    //off
-    inTankValA = false;
-    inTankValB = false;
-  }
-  else if (insTank - 50 > 25) {
-    //left
-    inTankValA = false;
-    inTankValB = true;
-  }
-  else {
-    //right
-    inTankValA = true;
-    inTankValB = false;
-  }
+  if (abs(insTank - 50) < 20)
+    inTank = off;
+  else if (insTank - 50 > 30)
+    inTank = left;
+  else
+    inTank = right;
+}
+
+void delayCallTankOutDown() {
+  if (outTank != right) secondFlag = HIGH;
+  outTank = off;
+}
+
+void delayCallTankOutUp() {
+  if (outTank != left) secondFlag = LOW;
+  outTank = off;
 }
 
 void voltageCheck() {
@@ -336,10 +336,41 @@ void timer50() {  //50ms timer
   fading(diepte, &diepteReal, 3);
 
   //Inside Tank and Outside Tank
-  digitalWrite(7, inTankValA); //inTankValA
-  digitalWrite(8, inTankValB); //inTankValB
-  digitalWrite(9, outTankValA); //outTankValA
-  digitalWrite(10, outTankValB); //outTankValB
+  //digitalWrite(7, inTankValA); //inTankValA
+  //digitalWrite(8, inTankValB); //inTankValB
+  //digitalWrite(9, outTankValA); //outTankValA
+  //digitalWrite(10, outTankValB); //outTankValB
+  if (outTank == off)
+  {
+    digitalWrite(9, LOW); //outTankValA
+    digitalWrite(10, LOW); //outTankValB
+  }
+  else if (outTank == left)
+  {
+    digitalWrite(9, HIGH); //outTankValA
+    digitalWrite(10, LOW); //outTankValB
+  }
+  else if (outTank == right)
+  {
+    digitalWrite(9, LOW); //outTankValA
+    digitalWrite(10, HIGH); //outTankValB
+  }
+
+  if (inTank == off)
+  {
+    digitalWrite(7, LOW); //inTankValA
+    digitalWrite(8, LOW); //inTankValB
+  }
+  else if (inTank == left)
+  {
+    digitalWrite(7, HIGH); //inTankValA
+    digitalWrite(8, LOW); //inTankValB
+  }
+  else if (inTank == right)
+  {
+    digitalWrite(7, LOW); //inTankValA
+    digitalWrite(8, HIGH); //inTankValB
+  }
 
   printValues(); //Log
 }
@@ -349,36 +380,22 @@ void timer1000() {   //1000ms timer
   //digitalWrite(led, blinkLed);
 }
 
-void timer750() {   //750ms timer
+void timer1500() {   //1500ms timer
   if (voltageAlarm) { //RED Blink
     blinkLed = !blinkLed;
-    if (blinkLed) myLed.changeColor(red);
-    else myLed.changeColor(white);
+    if (blinkLed) myLed.changeColor("#FFFF00");
+    else myLed.changeColor("#000000");
     //digitalWrite(12, blinkLed); //RED
     //digitalWrite(13, LOW); //BLUE
   }
   else {    //Fade from blue to red
     short red = map(voltageReal, VoltageMin, 1023, 255, 0);
-    short green = 0;
+    short green = map(voltageReal, VoltageMin, 1023, 255, 0);
     short blue = map(voltageReal, VoltageMin, 1023, 0, 255);
     myLed.changeColor(red, green, blue);
     //digitalWrite(12, HIGH); //RED
     //digitalWrite(13, LOW); //BLUE
   }
   //voltageReal
-}
-
-void delayCall1() {
-  outTankFlag = false;
-  if (outTankValA || !outTankValB) secondFlag = HIGH;
-  outTankValA = LOW;
-  outTankValB = LOW;
-}
-
-void delayCall2() {
-  outTankFlag = false;
-  if (!outTankValA || outTankValB) secondFlag = LOW;
-  outTankValA = HIGH;
-  outTankValB = HIGH;
 }
 

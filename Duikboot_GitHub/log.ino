@@ -1,9 +1,9 @@
 void printValues()
 {
-  //Serial.print("Fl1: " + String(firstFlag) + " ");
-  //Serial.print("Fl2: " + String(secondFlag) + " ");
-  //Serial.print("TIn: " + String(insTankFlag) + " ");
-  //Serial.print("TOut: " + String(outTankFlag) + " ");
+  Serial.print("Fl1: " + String(firstFlag) + " ");
+  Serial.print("Fl2: " + String(secondFlag) + " ");
+  Serial.print("TIn: " + String(inTank) + " ");
+  Serial.print("TOut: " + String(outTank) + " ");
   Serial.print("voltage: "+ String(voltageAlarm) + " ");
 /*
   String myStringOutTank = (String)
@@ -173,7 +173,7 @@ void printValues()
                + ((abs(blue) < 100) ? " " : "")//text align
                + ((abs(blue) < 10) ? " " : "")//text align
                + "";
-  Serial.println(ledLOG);
+  Serial.print(ledLOG);
 
 
   Serial.println("");
