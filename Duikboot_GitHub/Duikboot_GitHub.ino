@@ -15,6 +15,35 @@
     Throtle beneden, boven, beneden,...
 */
 
+/*
+                                                +-----+
+                   +----[PWR]-------------------| USB |--+
+                   |                            +-----+  |
+                   |         GND/RST2  [ ][ ]            |
+                   |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |   
+                   |          5V/MISO2 [ ][ ]  A4/SDA[ ] |   
+                   |                             AREF[ ] |
+                   |                              GND[ ] |
+                   | [ ]N/C                    SCK/13[ ] |   Duik V
+                   | [ ]IOREF                 MISO/12[ ] |   Duik A
+                   | [ ]RST                   MOSI/11[ ]~|   Propellers
+                   | [ ]3V3    +---+               10[ ]~|   Buiten B
+                   | [ ]5v    -| A |-               9[ ]~|   Buiten A
+                   | [ ]GND   -| R |-               8[ ] |   Binnen B
+                   | [ ]GND   -| D |-                    |
+                   | [ ]Vin   -| U |-               7[ ] |   Binnen A
+                   |          -| I |-               6[ ]~|   LED B
+            Druk   | [ ]A0    -| N |-               5[ ]~|   LED R
+         Voltage   | [ ]A1    -| O |-               4[ ] |   Water Sensor
+                   | [ ]A2     +---+           INT1/3[ ]~|   STUUR
+                   | [ ]A3                     INT0/2[ ] |   PPM
+             XYZ   | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   USB
+             XYZ   | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   USB
+                   |            [ ] [ ] [ ]              |
+                   |  UNO_R3    GND MOSI 5V  ____________/
+                    \_______________________/
+ */
+
 /*INCLUDE*/
 #include <ADXL345.h>      //Library by Adafruit: https://github.com/adafruit/Adafruit_ADXL345
 #include <PPMdecode.h>    //Library by Thomas Devoogdt: https://github.com/ThomasDavidDev/PPMdecode
@@ -39,20 +68,20 @@
 #define directVBAngleStart  20
 #define directVFAngleStart  20
 
-#define directAngleMin  129 //Servo Mapping Direction Angle
+#define directAngleMin  0 //Servo Mapping Direction Angle
 #define directAngleMax  180
 #define directAngleVAngleMin  0 //Servo Mapping Vertical Direction Angle
 #define directAngleVAngleMax  40
 
-#define maxDiepteBuitenTank 25    //Max diepte waarbij pompen nog nut heeft.
-//#define snorkel           20      //Diepte Snorkel
-#define delayTankOutDown  36000   //Pomptijd omlaag
-#define delayTankOutUp    36000   //Pomptijd omhoog
-//#define delayTankInsDown  1000    //Pomptijd binnentank
-//#define delayTankInsUp    500     //Pomptijd binnentank
-//#define maxDiepte         150     //cm
-//#define minDuikSnelheid   -1      //1cm / 5s  
-//#define criDuikSnelheid   -10     //10cm / 5s Kritieke duiksnelheid
+#define maxDiepteBuitenTank   25      //Max diepte waarbij pompen nog nut heeft.
+//#define snorkel             20      //Diepte Snorkel
+#define delayTankOutDown      36000   //Pomptijd omlaag
+#define delayTankOutUp        36000   //Pomptijd omhoog
+//#define delayTankInsDown    1000    //Pomptijd binnentank
+//#define delayTankInsUp      500     //Pomptijd binnentank
+//#define maxDiepte           150     //cm
+//#define minDuikSnelheid     -1      //1cm / 5s
+//#define criDuikSnelheid     -10     //10cm / 5s Kritieke duiksnelheid
 
 //Vervang de getallen in PPM om de afstandsbediening in te stellen.
 #define PPMdirectionHorizontal  PPM[1]  //... (vul de juiste joystick aan)
@@ -101,7 +130,7 @@ int voltageReal;
 boolean voltageAlarm = LOW;
 
 /*RGBLed*/
-rgbLed myLed = rgbLed(12, 12, 13);
+rgbLed myLed = rgbLed(5, 5, 6);
 //RED   = PIN 12
 //GREEN = PIN 12
 //BLUE  = PIN 13
@@ -177,8 +206,8 @@ void setup() {
   myLed.transitionTime = 1000;
 
   direct.attach(3);                           //Richting Links Rechts
-  directVB.attach(5);                         //Richting Achteraan, Omlaag - Omhoog
-  directVF.attach(6);                         //Richting Vooraan, Omlaag - Omhoog
+  directVB.attach(12);                         //Richting Achteraan, Omlaag - Omhoog
+  directVF.attach(13);                         //Richting Vooraan, Omlaag - Omhoog
   speedSet.attach(11, 1000, 2000);            //ESC's Motoren
 
   delay(500);
@@ -237,15 +266,17 @@ void ppmRemap() {
 
 void servoCalc() {
   int directV = PPMdirectionVertical; //Channel 0, val: 0 to 100
+
+  int central = (directAngleVAngleMin + directAngleVAngleMax) / 2;
   if (directV - 50 > servoOffset) {
-    directVFAngle = map(directV, 50 + speedOffset, 100, directAngleVAngleMin, (directAngleVAngleMin + directAngleVAngleMax) / 2);
-    directVBAngle = map(directV, 50 + speedOffset, 100, (directAngleVAngleMin + directAngleVAngleMax) / 2, directAngleVAngleMin);
+    directVFAngle = map(directV, 50 + servoOffset, 100, central, directAngleVAngleMax);
+    directVBAngle = map(directV, 0, 50 + servoOffset, directAngleVAngleMin, central);
   }
   else {
-    directVFAngle = map(directV, 0, 50 - speedOffset, (directAngleVAngleMin + directAngleVAngleMax) / 2, directAngleVAngleMax);
-    directVBAngle = map(directV, 0, 50 - speedOffset, directAngleVAngleMax, (directAngleVAngleMin + directAngleVAngleMax) / 2);
+    directVFAngle = map(directV, 0, 50 - servoOffset, directAngleVAngleMin, central);
+    directVBAngle = map(directV, 50 - servoOffset, 100, central, directAngleVAngleMax);
   }
-  directAngle = map(PPMdirectionHorizontal, 0, 100, directAngleMin, directAngleMax);
+  directAngle = map(PPMdirectionHorizontal, 0, 100, directAngleMax, directAngleMin);
 }
 
 void escCalc() {
@@ -282,7 +313,7 @@ void tankCalc() {
   }
 
   //Binnen Tank H-Bridge
-  //Later: als secondFlag && firstFlag, PID op insTank met Error = diepteReal - map(duikreal, 10, 100, maxDiepteBuitenTank, max diepte) 
+  //Later: als secondFlag && firstFlag, PID op insTank met Error = diepteReal - map(duikreal, 10, 100, maxDiepteBuitenTank, max diepte)
   //En de hysteresis van 10 naar 20
   int insTank = PPMbinnenTank; //Channel 3, val: 0 to 100
   if (abs(insTank - 50) < 20)
@@ -294,12 +325,12 @@ void tankCalc() {
 }
 
 void delayCallTankOutDown() {
-  if (outTank != right) secondFlag = HIGH;
+  if (outTank != right) secondFlag = true;
   outTank = off;
 }
 
 void delayCallTankOutUp() {
-  if (outTank != left) secondFlag = LOW;
+  if (outTank != left) secondFlag = false;
   outTank = off;
 }
 
@@ -315,7 +346,7 @@ void voltageCheck() {
 int fading(int input, int *real, int val) {   //Berekent de fading.
   if (*real < input && *real + val < input) *real += val;
   else if (*real > input && *real - val > input) *real -= val;
-  else *real += input - *real;
+  else *real = input;
   return *real;
 }
 
@@ -327,7 +358,7 @@ void timer50() {  //50ms timer
   fading(z + zO, &zR, 1);
 
   //fading ESC
-  speedSet.write(fading(speedSetVal, &speedSetValReal, 4));
+  speedSet.write(fading(speedSetVal, &speedSetValReal, 10));
   direct.write(fading(directAngle, &directAngleReal, 15));
   directVB.write(fading(directVBAngle, &directVBAngleReal, 15));
   directVF.write(fading(directVFAngle, &directVFAngleReal, 15));
@@ -342,8 +373,8 @@ void timer50() {  //50ms timer
   //digitalWrite(10, outTankValB); //outTankValB
   if (outTank == off)
   {
-    digitalWrite(9, LOW); //outTankValA
-    digitalWrite(10, LOW); //outTankValB
+    digitalWrite(9, HIGH); //outTankValA
+    digitalWrite(10, HIGH); //outTankValB
   }
   else if (outTank == left)
   {
@@ -358,8 +389,8 @@ void timer50() {  //50ms timer
 
   if (inTank == off)
   {
-    digitalWrite(7, LOW); //inTankValA
-    digitalWrite(8, LOW); //inTankValB
+    digitalWrite(7, HIGH); //inTankValA
+    digitalWrite(8, HIGH); //inTankValB
   }
   else if (inTank == left)
   {
@@ -381,7 +412,7 @@ void timer1000() {   //1000ms timer
 }
 
 void timer1500() {   //1500ms timer
-  if (voltageAlarm) { //RED Blink
+  if (!voltageAlarm) { //RED Blink
     blinkLed = !blinkLed;
     if (blinkLed) myLed.changeColor("#FFFF00");
     else myLed.changeColor("#000000");

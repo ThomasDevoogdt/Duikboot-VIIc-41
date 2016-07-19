@@ -1,10 +1,10 @@
 void printValues()
 {
-  Serial.print("Fl1: " + String(firstFlag) + " ");
-  Serial.print("Fl2: " + String(secondFlag) + " ");
-  Serial.print("TIn: " + String(inTank) + " ");
-  Serial.print("TOut: " + String(outTank) + " ");
-  Serial.print("voltage: "+ String(voltageAlarm) + " ");
+  //Serial.print("Fl1: " + String(firstFlag) + " ");
+  //Serial.print("Fl2: " + String(secondFlag) + " ");
+  //Serial.print("TIn: " + String(inTank) + " ");
+  //Serial.print("TOut: " + String(outTank) + " ");
+  //Serial.print("voltage: "+ String(voltageAlarm) + " ");
 /*
   String myStringOutTank = (String)
                            "Tout: "
@@ -53,7 +53,7 @@ void printValues()
   }
   
 
-
+/*
   adxl.readAccel(&x, &y, &z);
   int angel[3] = {x, y, z};
   for (int i; i < 3; i++) {
@@ -70,7 +70,7 @@ void printValues()
                       + ((abs(tmp) < 10) ? " " : "");//text align
     Serial.print(myString);
   }
-
+*/
 /*
   int myIntDruk = diepteReal;
   String myStringDruk = (String)
@@ -120,7 +120,7 @@ void printValues()
                             + "cm ";
   Serial.print(myStringDuikDiff);
 */
-/*
+
   String myStringdirectAngleReal = (String)
                             "Direction Angle: "
                             + ((directAngleReal < 0) ? "" : " ")//text align
@@ -154,7 +154,7 @@ void printValues()
                             + "g";
   Serial.print(myStringdirectVFAngleReal);
   //directVBAngleReal
-  */
+  
   
   short red = myLed.currentColor.r;
   short green = myLed.currentColor.g;
