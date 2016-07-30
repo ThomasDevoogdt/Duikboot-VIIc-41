@@ -173,7 +173,7 @@ Servo speedSet;         //ESC's Motoren
 
 /*SETUP*/
 void setup() {
-  Serial.begin(250000);            //INIT_Serial.
+  Serial.begin(112500);            //INIT_Serial.
   Serial.println("Welcome!");
   Serial.println("");
 
