@@ -5,6 +5,7 @@ void printValues()
   //Serial.print("TIn: " + String(inTank) + " ");
   //Serial.print("TOut: " + String(outTank) + " ");
   //Serial.print("voltage: "+ String(voltageAlarm) + " ");
+  Serial.print("Water: "+ String(waterCheckAlarm) + " ");
 /*
   String myStringOutTank = (String)
                            "Tout: "
