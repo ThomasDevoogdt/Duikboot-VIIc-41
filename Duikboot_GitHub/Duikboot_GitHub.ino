@@ -24,18 +24,18 @@
                    |          5V/MISO2 [ ][ ]  A4/SDA[ ] |   
                    |                             AREF[ ] |
                    |                              GND[ ] |
-                   | [ ]N/C                    SCK/13[ ] |   Duik V
-                   | [ ]IOREF                 MISO/12[ ] |   Duik A
+                   | [ ]N/C                    SCK/13[ ] |   Duik V (Direction Angle vf)
+                   | [ ]IOREF                 MISO/12[ ] |   Duik A (Direction Angle vb)
                    | [ ]RST                   MOSI/11[ ]~|   Propellers
-                   | [ ]3V3    +---+               10[ ]~|   Buiten B
-                   | [ ]5v    -| A |-               9[ ]~|   Buiten A
-                   | [ ]GND   -| R |-               8[ ] |   Binnen B
+                   | [ ]3V3    +---+               10[ ]~|   Buiten Tank B
+                   | [ ]5v    -| A |-               9[ ]~|   Buiten Tank A
+                   | [ ]GND   -| R |-               8[ ] |   Binnen Tank B
                    | [ ]GND   -| D |-                    |
-                   | [ ]Vin   -| U |-               7[ ] |   Binnen A
+                   | [ ]Vin   -| U |-               7[ ] |   Binnen Tank A
                    |          -| I |-               6[ ]~|   LED B
             Druk   | [ ]A0    -| N |-               5[ ]~|   LED R
          Voltage   | [ ]A1    -| O |-               4[ ] |   Water Sensor
-                   | [ ]A2     +---+           INT1/3[ ]~|   STUUR
+   Water Koeling   | [ ]A2     +---+           INT1/3[ ]~|   STUUR (Direction Angle)
                    | [ ]A3                     INT0/2[ ] |   PPM
              XYZ   | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   USB
              XYZ   | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   USB
@@ -45,13 +45,13 @@
  */
 
 /*INCLUDE*/
-#include <ADXL345.h>      //Library by Adafruit: https://github.com/adafruit/Adafruit_ADXL345
-#include <PPMdecode.h>    //Library by Thomas Devoogdt: https://github.com/ThomasDavidDev/PPMdecode
-#include <ColorLed.h>     //Library by Thomas Devoogdt: 
-#include <Wire.h>         //Library by Nicholas Zambetti: https://github.com/arduino/Arduino/tree/master/hardware/arduino/avr/libraries/Wire
-#include <Servo.h>        //Library by Michael Margolis: https://github.com/arduino/Arduino/tree/master/libraries/Servo
-#include <Event.h>        //Library by Simon Monk: http://www.doctormonk.com/2012/01/arduino-timer-library.html
-#include <Timer.h>        //Library by Simon Monk: http://www.doctormonk.com/2012/01/arduino-timer-library.html
+#include <ADXL345.h>      //Library by Adafruit:           https://github.com/adafruit/Adafruit_ADXL345
+#include <PPMdecode.h>    //Library by Thomas Devoogdt:    https://github.com/ThomasDavidDev/PPMdecode
+#include <ColorLed.h>     //Library by Thomas Devoogdt:    
+#include <Wire.h>         //Library by Nicholas Zambetti:  https://github.com/arduino/Arduino/tree/master/hardware/arduino/avr/libraries/Wire
+#include <Servo.h>        //Library by Michael Margolis:   https://github.com/arduino/Arduino/tree/master/libraries/Servo
+#include <Event.h>        //Library by Simon Monk:         http://www.doctormonk.com/2012/01/arduino-timer-library.html
+#include <Timer.h>        //Library by Simon Monk:         http://www.doctormonk.com/2012/01/arduino-timer-library.html
 
 /*Define's*/
 //#define led 13
@@ -64,14 +64,14 @@
 #define speedStop 90      //ESC geen beweging.
 #define speedMax  165     //ESC max snelheid rechts.
 
-#define directAngleStart    155  //Servo's neutrale positie
-#define directVBAngleStart  20
-#define directVFAngleStart  20
+#define directAngleStart    90  //Servo's neutrale positie
+#define directVBAngleStart  90
+#define directVFAngleStart  90
 
-#define directAngleMin  0 //Servo Mapping Direction Angle
-#define directAngleMax  180
-#define directAngleVAngleMin  0 //Servo Mapping Vertical Direction Angle
-#define directAngleVAngleMax  40
+#define directAngleMin  47   //Servo Mapping Direction Angle [abs: 47 - 132]
+#define directAngleMax  132
+#define directAngleVAngleMin  27 //Servo Mapping Vertical Direction Angle [abs: 27 - 115]
+#define directAngleVAngleMax  115
 
 #define maxDiepteBuitenTank   25      //Max diepte waarbij pompen nog nut heeft.
 //#define snorkel             20      //Diepte Snorkel
@@ -126,8 +126,16 @@ int drukCal;
 
 /*Voltage_Check*/
 int voltageReal;
-#define voltagePin 1
+#define voltagePin A1
 boolean voltageAlarm = LOW;
+
+/*Water_Check*/
+#define waterCheckPin 4
+boolean waterCheckAlarm = LOW;
+
+/*Water_Koeling*/
+#define waterKoelingPin A2
+boolean waterKoeling = LOW;
 
 /*RGBLed*/
 rgbLed myLed = rgbLed(5, 5, 6);
@@ -199,6 +207,10 @@ void setup() {
   pinMode(8, OUTPUT);     //inTankValB
   pinMode(9, OUTPUT);     //outTankValA
   pinMode(10, OUTPUT);    //outTankValB
+  
+  pinMode(waterKoelingPin, OUTPUT);
+  
+  pinMode(waterCheckPin, INPUT);
 
   //pinMode(12, OUTPUT);    //RED
   //pinMode(13, OUTPUT);    //BLUE
@@ -229,6 +241,8 @@ void loop() {
   escCalc();            //Berekent de snelheid van de motoren.
 
   tankCalc();           //Berekent de snelheid van de pompen en regelt hun werking.
+
+  waterCheck();         //Controleert of er water in de boot is gekomen.
 
   voltageCheck();       //Controleert de spanning van de batterijen.
 
@@ -281,12 +295,20 @@ void servoCalc() {
 
 void escCalc() {
   int speedSet = PPMspeed; //Channel 0, val: 0 to 100
-  if (abs(speedSet - 50) < speedOffset)
+  if (abs(speedSet - 50) < speedOffset){
     speedSetVal = speedStop; // map: 35 to 65 --> 90
+    waterKoeling = LOW;
+  }
   else if (speedSet - 50 > speedOffset)
+  {
     speedSetVal = map(speedSet, 50 + speedOffset, 100, speedStop, speedMax); // map: 65 to 100 --> 90 to 165
+    waterKoeling = HIGH;
+  }
   else
+  {
     speedSetVal = map(speedSet, 0, 50 - speedOffset, speedMin, speedStop); // map: 0 to 35 --> 15 to 90
+    waterKoeling = HIGH;
+  }
 }
 
 void tankCalc() {
@@ -341,6 +363,10 @@ void voltageCheck() {
   if (fading(analogRead(voltagePin), &voltageReal, 1) > VoltageHysterese && voltageAlarm) {
     voltageAlarm = false;
   }
+}
+
+void waterCheck() {
+  waterCheckAlarm = !digitalRead(waterCheckPin);
 }
 
 int fading(int input, int *real, int val) {   //Berekent de fading.
@@ -403,6 +429,8 @@ void timer50() {  //50ms timer
     digitalWrite(8, HIGH); //inTankValB
   }
 
+  digitalWrite(waterKoelingPin, waterKoeling);
+
   printValues(); //Log
 }
 
@@ -412,17 +440,17 @@ void timer1000() {   //1000ms timer
 }
 
 void timer1500() {   //1500ms timer
-  if (!voltageAlarm) { //RED Blink
+  if (voltageAlarm || waterCheckAlarm) { //RED Blink
     blinkLed = !blinkLed;
-    if (blinkLed) myLed.changeColor("#FFFF00");
-    else myLed.changeColor("#000000");
+    if (blinkLed) myLed.changeColor("#0000FF");
+    else myLed.changeColor("#FFFFFF");
     //digitalWrite(12, blinkLed); //RED
     //digitalWrite(13, LOW); //BLUE
   }
   else {    //Fade from blue to red
-    short red = map(voltageReal, VoltageMin, 1023, 255, 0);
-    short green = map(voltageReal, VoltageMin, 1023, 255, 0);
-    short blue = map(voltageReal, VoltageMin, 1023, 0, 255);
+    short red = map(voltageReal, VoltageMin, 1023, 0, 255);
+    short green = map(voltageReal, VoltageMin, 1023, 0, 255);
+    short blue = map(voltageReal, VoltageMin, 1023, 255, 0);
     myLed.changeColor(red, green, blue);
     //digitalWrite(12, HIGH); //RED
     //digitalWrite(13, LOW); //BLUE
