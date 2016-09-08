@@ -57,7 +57,7 @@
 //#define led 13
 
 //#define gyroServoOffset 30  //Max hoek die door servo's worden gecorrigeerd.
-#define speedOffset 5       //Zone waarbinnen speedStop actief is. (voor joystick)
+#define speedOffset 20       //Zone waarbinnen speedStop actief is. (voor joystick)
 #define servoOffset 7       //Zone waarbinnen servoOffset actief is. (voor joystick)
 
 #define speedMin  15      //ESC max snelheid links.
@@ -70,8 +70,10 @@
 
 #define directAngleMin  47   //Servo Mapping Direction Angle [abs: 47 - 132]
 #define directAngleMax  132
-#define directAngleVAngleMin  27 //Servo Mapping Vertical Direction Angle [abs: 27 - 115]
-#define directAngleVAngleMax  115
+#define directAngleVAngleFrontMin  27 //Servo Mapping Vertical Direction Angle [abs: 27 - 115]
+#define directAngleVAngleFrontMax  115
+#define directAngleVAngleBackMin  27 //Servo Mapping Vertical Direction Angle [abs: 27 - 115]
+#define directAngleVAngleBackMax  115
 
 #define maxDiepteBuitenTank   25      //Max diepte waarbij pompen nog nut heeft.
 //#define snorkel             20      //Diepte Snorkel
@@ -281,14 +283,15 @@ void ppmRemap() {
 void servoCalc() {
   int directV = PPMdirectionVertical; //Channel 0, val: 0 to 100
 
-  int central = (directAngleVAngleMin + directAngleVAngleMax) / 2;
+  int centralFront = (directAngleVAngleFrontMin + directAngleVAngleFrontMax) / 2;
+  int centralBack = (directAngleVAngleBackMin + directAngleVAngleBackMax) / 2;
   if (directV - 50 > servoOffset) {
-    directVFAngle = map(directV, 50 + servoOffset, 100, central, directAngleVAngleMax);
-    directVBAngle = map(directV, 0, 50 + servoOffset, directAngleVAngleMin, central);
+    directVFAngle = map(directV, 50 + servoOffset, 100, centralFront, directAngleVAngleFrontMax);
+    directVBAngle = map(directV, 0, 50 + servoOffset, directAngleVAngleBackMin, centralBack);
   }
   else {
-    directVFAngle = map(directV, 0, 50 - servoOffset, directAngleVAngleMin, central);
-    directVBAngle = map(directV, 50 - servoOffset, 100, central, directAngleVAngleMax);
+    directVFAngle = map(directV, 0, 50 - servoOffset, directAngleVAngleFrontMin, centralFront);
+    directVBAngle = map(directV, 50 - servoOffset, 100, centralBack, directAngleVAngleBackMax);
   }
   directAngle = map(PPMdirectionHorizontal, 0, 100, directAngleMax, directAngleMin);
 }
