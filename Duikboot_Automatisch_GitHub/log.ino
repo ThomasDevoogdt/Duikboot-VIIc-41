@@ -72,19 +72,19 @@ void printValues()
     Serial.print(myString);
   }
 */
-/*
+
   int myIntDruk = diepteReal;
   String myStringDruk = (String)
                         "Diepte: "
-                        + ((myIntDruk < 0) ? "" : " ")//text align
-                        + String(myIntDruk)
+                        + ((diepteReal < 0) ? "" : " ")//text align
+                        + String(diepteReal)
                         + " "
-                        + ((abs(myIntDruk) < 1000) ? " " : "")//text align
-                        + ((abs(myIntDruk) < 100) ? " " : "")//text align
-                        + ((abs(myIntDruk) < 10) ? " " : "")//text align
+                        + ((abs(diepteReal) < 1000) ? " " : "")//text align
+                        + ((abs(diepteReal) < 100) ? " " : "")//text align
+                        + ((abs(diepteReal) < 10) ? " " : "")//text align
                         + "cm ";
   Serial.print(myStringDruk);
-*/
+
 /*
   String myStringDrukAsk = (String)
                            "Diepte Ask: "
@@ -150,7 +150,7 @@ void printValues()
                             + String(directVFAngleReal)
                             + " "
                             + ((abs(directVFAngleReal) < 1000) ? " " : "")//text align
-                            + ((abs(directVFAngleReal) < 100) ? " " : "")//text align
+                            + ((abs(dirctVFAngleReal) < 100) ? " " : "")//text align
                             + ((abs(directVFAngleReal) < 10) ? " " : "")//text align
                             + " ";
   Serial.print(myStringdirectVFAngleReal);

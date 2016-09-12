@@ -53,6 +53,7 @@
 #include <Servo.h>        //Library by Michael Margolis:   https://github.com/arduino/Arduino/tree/master/libraries/Servo
 #include <Event.h>        //Library by Simon Monk:         http://www.doctormonk.com/2012/01/arduino-timer-library.html
 #include <Timer.h>        //Library by Simon Monk:         http://www.doctormonk.com/2012/01/arduino-timer-library.html
+#include <PID_v1.h>       //Library by Brett Beauregard:   https://github.com/br3ttb/Arduino-PID-Library/
 
 /*Define's*/
 //#define led 13
@@ -82,7 +83,7 @@
 #define delayTankOutDown      38500   //Pomptijd omlaag
 #define delayTankOutUp        38500   //Pomptijd omhoog
 #define delayTankIns          10000    //Pomptijd binnentank
-//#define maxDiepte           150     //cm
+#define maxDiepte             150     //cm
 //#define minDuikSnelheid     -1      //1cm / 5s
 //#define criDuikSnelheid     -10     //10cm / 5s Kritieke duiksnelheid
 
@@ -109,6 +110,11 @@ short defaultValue[channels] = {
   50, 50, 50, 50, 50, 0 };
 int PPM[channels] = { 
   50, 50, 50, 50, 50, 0 };
+
+/*PID*/
+double PIDSetpoint, PIDInput, PIDOutput;
+PID myPID(&PIDInput, &PIDOutput, &PIDSetpoint,2,5,1, DIRECT);
+
 
 /*ADXL345_INIT (Hoek)*/
 ADXL345 adxl = ADXL345();     //Aanmaken van een nieuw object.
@@ -173,8 +179,6 @@ int duikReal;               //Waarde van schuif pot. meter.
 boolean firstFlag = false;    //Duikprocedure starten.
 boolean secondFlag = false;   //Snorkeldiepte bereikt met buitentank.
 boolean tankInsFlag = false;  //Binnen Tank Pomp Verg.
-boolean tankInsSecondFlag = false; //Binnen Tank zeker uitpompen.
-
 
 enum HBrug { 
   off, left, right };
@@ -214,6 +218,12 @@ void setup() {
   drukCal = analogRead(drukPin);   //Pressure Calibration. (eventueel vast zetten)
 
   myPPMdecode.SetDefaultValues(defaultValue);
+
+  //tell the PID to range between -150 to 150
+  myPID.SetOutputLimits(-150, 150);
+
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
 
   pinMode(7, OUTPUT);     //inTankValA
   pinMode(8, OUTPUT);     //inTankValB
@@ -329,32 +339,96 @@ void tankCalc() {
   /*
    * boolean firstFlag = false;    //Duikprocedure starten.
    * boolean secondFlag = false;   //Snorkeldiepte bereikt met buitentank.
-   * boolean tankInsFlag = false;  //Binnen Tank Pomp Verg.
-   * boolean tankInsSecondFlag = false; //Binnen Tank zeker uitpompen.
    *
    * int diepteReal;               //Diepte volgens druk pin.
    * int duikReal;                 //Waarde van schuif pot. meter.
    */
-  //Buiten Tank
-  //  if (PPMDuikenSchuifAsk > 75 && !firstFlag) firstFlag = true;
-  //  if (PPMDuikenSchuifAsk < 25 && firstFlag) firstFlag = false;
-  //
-  //  if (diepteReal < maxDiepteBuitenTank) {
-  //    if (firstFlag && ((outTank == off && !secondFlag) || (outTank == right && secondFlag)) ) {
-  //      outTank = left; //Inpompen
-  //      t.after(delayTankOutDown, delayCallTankOutDown);
-  //    }
-  //    if (!firstFlag && ((outTank == off && secondFlag) || (outTank == left  && !secondFlag)) ) {
-  //      outTank = right;  //Uitpompen
-  //      t.after(delayTankOutUp, delayCallTankOutUp);
-  //    }
-  //  }
-  //
-  //  //Binnen Tank H-Bridge
-  //  //Later: als secondFlag && firstFlag, PID op insTank met Error = diepteReal - map(duikreal, 10, 100, maxDiepteBuitenTank, max diepte)
-  //  //En de hysteresis van 10 naar 20
-  //  int insTank = PPMbinnenTank; //Channel 3, val: 0 to 100
   //  if (abs(PPMDuikenAsk - 50) < 25)
+  //  {
+  //   // Stil
+  //     tankInsFlag = false;
+  //     inTank = off; 
+  //  }
+  //  else if (tankInsFlag)
+  //  {
+  //     inTank = off; 
+  //  }
+  //  else if ((PPMDuikenAsk - 50) > 24)  
+  //  {// Beneden
+  //      if (diepteReal < maxDiepteBuitenTank && (outTank == off && !secondFlag) || (outTank == right && secondFlag)) //Buiten Tank
+  //      {
+  //        outTank = left; //Inpompen
+  //        t.after(delayTankOutDown, delayCallTankOutDown);
+  //      }
+  //      else if (outTank == off && secondFlag) //Binnen Tank
+  //      {
+  //        inTank = left;
+  //        t.after(delayTankIns, delayCallTankInMax); 
+  //      }
+  //  }
+  //  else
+  //  {// Boven
+  //     if (diepteReal < maxDiepteBuitenTank && (outTank == off && secondFlag) || (outTank == left  && !secondFlag)) //Buiten Tank
+  //     {
+  //        outTank = right; //Uitpompen
+  //        t.after(delayTankOutDown, delayCallTankOutUp);
+  //      }
+  //      else if (outTank == off && secondFlag) //Binnen Tank
+  //      {
+  //        inTank = right;
+  //        t.after(delayTankIns, delayCallTankInMax); 
+  //      }
+  //  }
+
+
+  //Buiten Tank
+  if (PPMDuikenSchuifAsk > 20 && !firstFlag) firstFlag = true;
+  if (PPMDuikenSchuifAsk < 5 && firstFlag) firstFlag = false;
+
+  if (diepteReal < maxDiepteBuitenTank) {
+    if (firstFlag && ((outTank == off && !secondFlag) || (outTank == right && secondFlag)) ) {
+      outTank = left; //Inpompen
+      t.after(delayTankOutDown, delayCallTankOutDown);
+    }
+    if (!firstFlag && ((outTank == off && secondFlag) || (outTank == left  && !secondFlag)) ) {
+      outTank = right;  //Uitpompen
+      t.after(delayTankOutUp, delayCallTankOutUp);
+    }
+  }
+
+  //Binnen Tank
+  PIDInput = diepteReal;
+  if (secondFlag) 
+  {
+    PIDSetpoint = map(PPMDuikenSchuifAsk, 20, 100, maxDiepteBuitenTank, maxDiepte);
+  }
+  else 
+  {
+    PIDSetpoint = diepteReal;
+  }
+
+  myPID.Compute();
+  if (outTank == off && firstFlag && secondFlag) 
+  {
+    if (PIDOutput < -100 )
+    {
+      inTank = right;
+    }
+    else if (PIDOutput > 100 )
+    {
+      inTank = left;
+    }
+  }
+  else 
+  {
+    inTank = off; 
+  }
+
+  //Binnen Tank H-Bridge
+  //Later: als secondFlag && firstFlag, PID op insTank met Error = diepteReal - map(duikreal, 10, 100, maxDiepteBuitenTank, max diepte)
+  //En de hysteresis van 10 naar 20
+  //  int insTank = PPMbinnenTank; //Channel 3, val: 0 to 100
+  //  if (abs(insTank - 50) < 25)
   //  {
   //    tankInsFlag = false; 
   //    inTank = off; 
@@ -363,7 +437,7 @@ void tankCalc() {
   //  {
   //    inTank = off; 
   //  }
-  //  else if ((PPMDuikenAsk - 50) > 24)
+  //  else if ((insTank - 50) > 24)
   //  {
   //    inTank = left;
   //    t.after(delayTankIns, delayCallTankInMax);   
@@ -374,43 +448,6 @@ void tankCalc() {
   //    inTank = right;
   //    t.after(delayTankIns, delayCallTankInMax);
   //  }
-
-  if (abs(PPMDuikenAsk - 50) < 25)
-  {
-    // Stil
-    tankInsFlag = false;
-    inTank = off; 
-  }
-  else if (tankInsFlag)
-  {
-    inTank = off; 
-  }
-  else if ((PPMDuikenAsk - 50) > 24)  
-  {// Beneden
-    if (diepteReal < maxDiepteBuitenTank && (outTank == off && !secondFlag) || (outTank == right && secondFlag)) //Buiten Tank
-    {
-      outTank = left; //Inpompen
-      t.after(delayTankOutDown, delayCallTankOutDown);
-    }
-    else if (outTank == off && secondFlag) //Binnen Tank
-    {
-      inTank = right;
-      t.after(delayTankIns, delayCallTankInMax); 
-    }
-  }
-  else
-  {// Boven
-    if (diepteReal < maxDiepteBuitenTank && (outTank == off && secondFlag) || (outTank == left  && !secondFlag)) //Buiten Tank
-    {
-      outTank = right; //Uitpompen
-      t.after(delayTankOutDown, delayCallTankOutUp);       
-    }
-    else if (outTank == off && secondFlag) //Binnen Tank
-    {
-      inTank = left;
-      t.after(delayTankIns, delayCallTankInMax); 
-    }
-  }
 }
 
 void delayCallTankOutDown() {
@@ -530,8 +567,6 @@ void timer1500() {   //1500ms timer
   }
   //voltageReal
 }
-
-
 
 
 
