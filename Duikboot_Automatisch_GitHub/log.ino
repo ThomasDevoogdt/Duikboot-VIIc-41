@@ -1,11 +1,37 @@
 void printValues()
 {
+    for (int i; i < channels; i++) {
+      int tmp = PPM[i];
+      String ChannelString = (String)
+                        "CH"
+                        + String(i)
+                        + ": "
+                        + String(tmp)
+                        + " "
+                        + ((tmp < 1000) ? " " : "")//text align
+                        + ((tmp < 100) ? " " : "")//text align
+                        + ((tmp < 10) ? " " : "");//text align
+      Serial.print(ChannelString);
+    }
+  
   //Serial.print("Fl1: " + String(firstFlag) + " ");
   //Serial.print("Fl2: " + String(secondFlag) + " ");
-  Serial.print("TIn: " + String(inTank) + " ");
   //Serial.print("TOut: " + String(outTank) + " ");
   //Serial.print("voltage: "+ String(voltageAlarm) + " ");
   //Serial.print("Water: "+ String(waterCheckAlarm) + " ");
+  
+  switch(inTank) {
+    case off: Serial.print("TIn: off   "); break;
+    case left: Serial.print("TIn: left  "); break;
+    case right: Serial.print("TIn: right "); break;
+  }
+  
+  switch(outTank) {
+    case off: Serial.print("TIn: off   "); break;
+    case left: Serial.print("TIn: left  "); break;
+    case right: Serial.print("TIn: right "); break;
+  }
+  
 /*
   String myStringOutTank = (String)
                            "Tout: "
@@ -39,19 +65,7 @@ void printValues()
                        + ((abs(speedSetValReal) < 10) ? " " : "");//text align
   Serial.print(myStringESC);
 */
-  for (int i; i < channels; i++) {
-    int tmp = PPM[i];
-    String myString = (String)
-                      "CH"
-                      + String(i)
-                      + ": "
-                      + String(tmp)
-                      + " "
-                      + ((tmp < 1000) ? " " : "")//text align
-                      + ((tmp < 100) ? " " : "")//text align
-                      + ((tmp < 10) ? " " : "");//text align
-    Serial.print(myString);
-  }
+
   
 
 /*
@@ -72,18 +86,29 @@ void printValues()
     Serial.print(myString);
   }
 */
-
-  int myIntDruk = diepteReal;
-  String myStringDruk = (String)
-                        "Diepte: "
-                        + ((diepteReal < 0) ? "" : " ")//text align
-                        + String(diepteReal)
+  int PIDInputInt = PIDInput;
+  String PIDInputString = (String)
+                        "PID Inp: "
+                        + ((PIDInputInt < 0) ? "" : " ")//text align
+                        + String(PIDInputInt)
                         + " "
-                        + ((abs(diepteReal) < 1000) ? " " : "")//text align
-                        + ((abs(diepteReal) < 100) ? " " : "")//text align
-                        + ((abs(diepteReal) < 10) ? " " : "")//text align
+                        + ((abs(PIDInputInt) < 1000) ? " " : "")//text align
+                        + ((abs(PIDInputInt) < 100) ? " " : "")//text align
+                        + ((abs(PIDInputInt) < 10) ? " " : "")//text align
                         + "cm ";
-  Serial.print(myStringDruk);
+  Serial.print(PIDInputString);
+  
+  int PIDSetpointInt = PIDSetpoint;
+    String PIDSetpointString = (String)
+                        "PID Setp: "
+                        + ((PIDSetpointInt < 0) ? "" : " ")//text align
+                        + String(PIDSetpointInt)
+                        + " "
+                        + ((abs(PIDSetpointInt) < 1000) ? " " : "")//text align
+                        + ((abs(PIDSetpointInt) < 100) ? " " : "")//text align
+                        + ((abs(PIDSetpointInt) < 10) ? " " : "")//text align
+                        + "cm ";
+  Serial.print(PIDSetpointString);
 
 /*
   String myStringDrukAsk = (String)
@@ -121,7 +146,7 @@ void printValues()
                             + "cm ";
   Serial.print(myStringDuikDiff);
 */
-
+/*
   String myStringdirectAngleReal = (String)
                             "Direct. Angl.: "
                             + ((directAngleReal < 0) ? "" : " ")//text align
@@ -155,7 +180,7 @@ void printValues()
                             + " ";
   Serial.print(myStringdirectVFAngleReal);
   //directVBAngleReal
-  
+  */
   /*
   short red = myLed.currentColor.r;
   short green = myLed.currentColor.g;
